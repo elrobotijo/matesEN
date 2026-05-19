@@ -66,7 +66,7 @@
            CONFIGURACIÓN DE FUENTES DE DATOS CSV (GITHUB/SERVIDOR)
         ========================================= */
         const CSV_SOURCES = {
-            // URL corregida quitando '/refs/heads/' para evitar el error 404 de GitHub Raw
+            // Nota pedagógica: si tu rama de GitHub es "master" en lugar de "main", cambia /main/ por /master/ aquí abajo.
             mate1: "https://raw.githubusercontent.com/elrobotijo/matesEN/main/1.csv"
         };
 
@@ -262,7 +262,7 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             }
         }
 
-        // Descargador Inteligente de Repositorio GitHub
+        // Descargador de Repositorio GitHub con soporte alternativo de contingencia
         async function loadAllDatabases() {
             state.dbLoading = true;
             state.dbError = null;
@@ -270,7 +270,7 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
 
             try {
                 const response = await fetch(CSV_SOURCES.mate1);
-                if (!response.ok) throw new Error("No se pudo conectar con el servidor de GitHub");
+                if (!response.ok) throw new Error("GitHub devolvió código de error " + response.status);
                 const text = await response.text();
                 
                 PuzzlesMate1 = [];
@@ -279,15 +279,15 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
                 processCSVData(text);
                 
                 state.dbLoaded = true;
-                console.log("Base de datos descargada con éxito.");
+                console.log("Base de datos de GitHub importada con éxito.");
             } catch (err) {
-                console.warn("Fallo de red o URL restringida. Iniciando base de datos interna de seguridad.", err);
+                console.warn("Fallo de descarga de GitHub. Iniciando base de datos interna de respaldo.", err);
                 PuzzlesMate1 = [];
                 PuzzlesMate2 = [];
                 PuzzlesMate3 = [];
                 processCSVData(backupCSV);
                 state.dbLoaded = true;
-                state.dbError = "Offline (Muestra interna activa)";
+                state.dbError = "Offline (Muestra interna cargada por seguridad)";
             } finally {
                 state.dbLoading = false;
                 renderApp();
@@ -762,7 +762,7 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             if (screenName === 'game_selector') TTS.speak(`¡Estupendo, ${state.playerName}! Elige el nivel de entrenamiento táctico que prefieras.`, true);
             else if (screenName === 'mate1_filters') TTS.speak(`Aquí tienes los mates en 1 clasificados de forma invisible. Puedes elegir entrenar por cantidad de piezas o por patrones tácticos de dificultad progresiva.`, true);
             else if (screenName === 'game') {
-                TTS.speak(`Iniciando posición aleatoria. Tienes una racha de ${state.consecutiveMates} mates.`, true);
+                TTS.speak(`Iniciando posición aleatoria. Juegas con las ${state.playerColor === 'w' ? 'blancas' : 'negras'}. Tienes una racha de ${state.consecutiveMates} mates.`, true);
             }
         }
 
