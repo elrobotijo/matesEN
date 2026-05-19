@@ -65,12 +65,9 @@
         /* =========================================
            CONFIGURACIÓN DE FUENTES DE DATOS CSV (GITHUB/SERVIDOR)
         ========================================= */
-        // Reemplaza estas URLs con las URLs "Raw" reales de tu GitHub cuando las tengas subidas
         const CSV_SOURCES = {
-            mate1: "https://raw.githubusercontent.com/tu-usuario/academia-atenea/main/test.csv"
-            // Puedes añadir fácilmente más fuentes en el futuro:
-            // mate2: "https://raw.githubusercontent.com/tu-usuario/academia-atenea/main/mates_en_2.csv",
-            // mate3: "https://raw.githubusercontent.com/tu-usuario/academia-atenea/main/mates_en_3.csv"
+            // URL corregida quitando '/refs/heads/' para evitar el error 404 de GitHub Raw
+            mate1: "https://raw.githubusercontent.com/elrobotijo/matesEN/main/1.csv"
         };
 
         /* =========================================
@@ -202,7 +199,7 @@
         let PuzzlesMate2 = [];
         let PuzzlesMate3 = [];
         
-        // Muestra inicial de salvaguarda (se activa automáticamente si falla la descarga de GitHub)
+        // Muestra inicial de salvaguarda (se activa automáticamente si falla la descarga o carga offline)
         const backupCSV = `fen,best
 1rb5/4r3/3p1npb/3kp1P1/1P3P1P/5nR1/2Q1BK2/bN4NR w - - 3 61,c2c4
 rn1q2n1/b3k1pr/pp1pB1Qp/2p1p1P1/2P1PP2/5R1P/P2P4/RNB1K3 w - - 1 24,g6f7
@@ -249,7 +246,6 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
                     if (plies.length === 1) {
                         const pieceCount = countPiecesInFEN(fen);
                         const matingPiece = getMatingPieceFromFEN(fen, plies[0]);
-                        // Evitar duplicidades si cargamos varios recursos
                         if(!PuzzlesMate1.some(x => x.fen === fen)) {
                             PuzzlesMate1.push({ fen, best, plies, pieceCount, matingPiece });
                         }
@@ -266,16 +262,15 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             }
         }
 
-        // Descargador Inteligente Paralelo
+        // Descargador Inteligente de Repositorio GitHub
         async function loadAllDatabases() {
             state.dbLoading = true;
             state.dbError = null;
             renderApp();
 
             try {
-                // Descargar el CSV de forma asíncrona
                 const response = await fetch(CSV_SOURCES.mate1);
-                if (!response.ok) throw new Error("No se pudo conectar con GitHub");
+                if (!response.ok) throw new Error("No se pudo conectar con el servidor de GitHub");
                 const text = await response.text();
                 
                 PuzzlesMate1 = [];
@@ -284,15 +279,15 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
                 processCSVData(text);
                 
                 state.dbLoaded = true;
-                console.log("Base de datos de GitHub cargada con éxito.");
+                console.log("Base de datos descargada con éxito.");
             } catch (err) {
-                console.warn("Fallo de red o URL no configurada aún. Activando base de datos interna de respaldo.", err);
+                console.warn("Fallo de red o URL restringida. Iniciando base de datos interna de seguridad.", err);
                 PuzzlesMate1 = [];
                 PuzzlesMate2 = [];
                 PuzzlesMate3 = [];
                 processCSVData(backupCSV);
                 state.dbLoaded = true;
-                state.dbError = "Conexión offline (Usando base de datos interna)";
+                state.dbError = "Offline (Muestra interna activa)";
             } finally {
                 state.dbLoading = false;
                 renderApp();
@@ -404,6 +399,9 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             return [...new Set(attackers)]; 
         }
 
+        /* =========================================
+           REGLAS DE RECONOCIMIENTO DE JAQUES
+        ========================================= */
         function isAttacked(board, targetR, targetC, attackingPlayer) {
             return getSquareAttackers(board, targetR, targetC, attackingPlayer).length > 0;
         }
@@ -764,7 +762,7 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             if (screenName === 'game_selector') TTS.speak(`¡Estupendo, ${state.playerName}! Elige el nivel de entrenamiento táctico que prefieras.`, true);
             else if (screenName === 'mate1_filters') TTS.speak(`Aquí tienes los mates en 1 clasificados de forma invisible. Puedes elegir entrenar por cantidad de piezas o por patrones tácticos de dificultad progresiva.`, true);
             else if (screenName === 'game') {
-                TTS.speak(`Iniciando posición aleatoria. Juegas con las ${state.playerColor === 'w' ? 'blancas' : 'negras'}. Tienes una racha de ${state.consecutiveMates} mates.`, true);
+                TTS.speak(`Iniciando posición aleatoria. Tienes una racha de ${state.consecutiveMates} mates.`, true);
             }
         }
 
@@ -773,7 +771,6 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
             const animClass = isScreenChange ? 'animate-fade-in-screen' : '';
 
             if (state.screen === 'login') {
-                // Comprobar si hay que iniciar la carga asíncrona la primera vez
                 if (!state.dbLoaded && !state.dbLoading) {
                     loadAllDatabases();
                 }
@@ -795,7 +792,7 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
                 container.innerHTML = `
                     <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md ${animClass} text-center border-t-8 border-indigo-600">
                         <div class="text-7xl text-indigo-600 mb-6"><i class="fa-solid fa-chess"></i></div>
-                        <h2 class="text-3xl font-bold mb-4 text-gray-800">Academia de Atenea</h2>
+                        <h2 class="text-3xl font-bold mb-4">Academia de Atenea</h2>
                         <p class="text-gray-500 mb-6 text-sm">Identifícate para iniciar el entrenamiento táctico.</p>
                         
                         <input type="text" id="player-name-input" placeholder="Tu nombre..." 
@@ -1336,4 +1333,3 @@ rnbqkbnr/ppppp2p/8/5pp1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3,d1h5`;
     </script>
 </body>
 </html>
-
